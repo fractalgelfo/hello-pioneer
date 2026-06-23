@@ -4,8 +4,157 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hello Pioneer</title>
+  <style>
+    body {
+      margin: 0;
+      background: #0a0a0a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      font-family: 'Courier New', monospace;
+      overflow: hidden;
+    }
+    h1 {
+      color: #fff;
+      font-size: 1.5rem;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      opacity: 0.5;
+    }
+    #random-number {
+      font-size: clamp(4rem, 18vw, 20rem);
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      line-height: 1;
+      background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+      background-size: 400% 400%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradientShift 3s ease infinite, pop 0.15s ease;
+      text-align: center;
+      padding: 0 1rem;
+    }
+    @keyframes gradientShift {
+      0%   { background-position: 0% 50%; }
+      50%  { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes pop {
+      0%   { transform: scale(0.8); opacity: 0; }
+      60%  { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .pop {
+      animation: gradientShift 3s ease infinite, pop 0.2s ease forwards !important;
+    }
+    form {
+      margin-top: 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      width: min(420px, 90vw);
+    }
+    form input, form textarea {
+      background: #111;
+      border: 1px solid #333;
+      color: #fff;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.2s;
+      resize: none;
+    }
+    form input:focus, form textarea:focus { border-color: #666; }
+    form button {
+      background: #fff;
+      color: #0a0a0a;
+      border: none;
+      font-family: 'Courier New', monospace;
+      font-size: 0.85rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    form button:hover { opacity: 0.8; }
+    form button:disabled { opacity: 0.4; cursor: not-allowed; }
+    #status {
+      font-size: 0.8rem;
+      letter-spacing: 0.1em;
+      text-align: center;
+      min-height: 1.2em;
+      color: #6bcb77;
+    }
+    #status.error { color: #ff6b6b; }
+  </style>
 </head>
 <body>
   <h1>hello from Pioneer Species</h1>
+  <div id="random-number">0</div>
+
+  <form id="email-form">
+    <input type="email" name="to" placeholder="to: address@example.com" required />
+    <input type="text" name="subject" placeholder="subject" required />
+    <textarea name="message" rows="4" placeholder="message" required></textarea>
+    <button type="submit" id="send-btn">Send</button>
+    <div id="status"></div>
+  </form>
+
+  <script>
+    function dropRandomNumber() {
+      const el = document.getElementById('random-number');
+      const num = Math.floor(Math.random() * 999999999999) + 1;
+      el.textContent = num.toLocaleString();
+      el.classList.remove('pop');
+      void el.offsetWidth; // force reflow to restart animation
+      el.classList.add('pop');
+    }
+
+    dropRandomNumber();
+    setInterval(dropRandomNumber, 3000);
+
+    document.getElementById('email-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('send-btn');
+      const status = document.getElementById('status');
+      const form = e.target;
+
+      btn.disabled = true;
+      btn.textContent = 'Sending…';
+      status.textContent = '';
+      status.className = '';
+
+      try {
+        const res = await fetch('/api/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            to: form.to.value,
+            subject: form.subject.value,
+            message: form.message.value,
+          }),
+        });
+        const json = await res.json();
+        if (!res.ok) throw new Error(json.error || 'Send failed');
+        status.textContent = 'Sent.';
+        form.reset();
+      } catch (err) {
+        status.textContent = err.message;
+        status.className = 'error';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send';
+      }
+    });
+  </script>
 </body>
 </html>
